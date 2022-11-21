@@ -1,2 +1,0 @@
-# vote-db
-# vote-db
