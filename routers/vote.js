@@ -3,18 +3,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../utils/db");
 
-//登入
-// http://localhost:3001/api/vote/login
-router.post("/login", async (req, res) => {
-  let [result] = await pool.execute(
-    'INSERT INTO cnt (name,vote_place_id) VALUES (?,?)',
-    [req.body.name, req.body.place]
-  );
-
-  // console.log( `INSERT INTO count (name,vote_place_id) VALUES (?,?)`,
-  // [req.body.name, req.body.place]);
-});
-
+//計票
 // 取得票所
 // http://localhost:3001/api/vote/vote_place
 router.get("/vote_place", async (req, res) => {
@@ -22,32 +11,43 @@ router.get("/vote_place", async (req, res) => {
   res.json(result);
 });
 
-// http://localhost:3001/api/vote/cnt/patch
-router.patch("/cnt/patch", async (req, res) => {
-  let [result] = await pool.execute(`UPDATE cnt SET candidate_id=? WHERE id=? `, [
-    req.body.text,
-    req.body.id,
-  ]);
-
-  res.json(result);
-});
-
 //取得候選人/票所
 // http://localhost:3001/api/vote/candidate
-router.get("/candidate", async (req, res) => {
-  let [result] = await pool.execute(`SELECT candidate.*,vote_place.constituency_id,vote_place.vote_name FROM candidate LEFT JOIN vote_place ON candidate.vote_place_id=vote_place.id `);
+router.post("/candidate", async (req, res) => {
+  let [result] = await pool.execute(
+    `SELECT candidate.*,vote_place.constituency_id,vote_place.vote_name FROM candidate LEFT JOIN vote_place ON candidate.vote_place_id=vote_place.id WHERE vote_place.vote_name=?`,
+    [req.body.votePlace]
+  );
+
   res.json(result);
 });
 
-// http://localhost:3001/api/delete
-// router.delete(`/api/delete`, async (req, res) => {
-//   let [result] = await pool.execute(`DELETE FROM list WHERE id=?`, [
-//     req.body.id,
-//   ]);
+//更新
+// http://localhost:3001/api/vote/cnt/patch
+router.patch("/cnt/patch", async (req, res) => {
+  let arr = req.body;
+  try {
+    for (let data of arr) {
+      let result = await pool.execute(
+        `UPDATE candidate SET cnt=?,number_of_votes=? WHERE vote_place_id=? && id=? `,
+        [data.cnt, data.number_of_votes, data.vote_place_id, data.id]
+      );
+     
+    }
+    res.json("susses");
+  } catch (err) {
+    console.log("err", err);
+  }
+});
 
-//   res.json(result);
-//   console.log("id", req.body.id);
-// });
+//查看排名
+// http://localhost:3001/api/vote/ranking
+router.get("/ranking", async (req, res) => {
+  let [result] = await pool.execute(`SELECT * FROM candidate `);
+  res.json(result);
+});
 
-// 匯出給別人用
+
+
+// 匯出
 module.exports = router;
